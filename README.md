@@ -3,7 +3,10 @@ Readout of edev raspbi temperature board
 
 Temperature readout through ADC readout by raspbi.  Original version of code from Keith Ong.
 
+As currently written, the program (when logging) will log the first eight thermistor 
+temperature readings to file at 5 second interval.  Data logged into this directory
 
+/home/franciumpi/temperature_data
 
 ______________
 
