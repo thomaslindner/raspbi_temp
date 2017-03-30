@@ -54,11 +54,11 @@ OBJ	=	$(SRC:.c=.o)
 
 BINS	=	$(SRC:.c=)
 
-all: temp.exe	
+all: temp_monitor.exe	
 
 really-all:	$(BINS)
 
-temp.exe : temp.o
+temp_monitor.exe : temp.o
 	$Q echo [link]
 	$Q $(CC) -o $@ temp.o $(LDFLAGS) $(LDLIBS)
 
@@ -69,7 +69,7 @@ temp.exe : temp.o
 
 clean:
 	$Q echo "[Clean]"
-	$Q rm -f $(OBJ) *~ core tags $(BINS)
+	$Q rm -f temp.o temp_monitor.exe *~ core tags $(BINS)
 
 tags:	$(SRC)
 	$Q echo [ctags]

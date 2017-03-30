@@ -7,13 +7,14 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-
+#include <time.h>
 
 //////////////////RASPBERRY PI SETUP///////////////////////////////////
 // See README.md for details on 
 
 // Program originally from Keith Ong
 // Modified by Thomas Lindner for Francium temperature readout
+// Put eight thermistor measurements into a text file every 5 seconds
 
 
 
@@ -105,35 +106,13 @@ int fd;  //file descriptor
 double NTC_voltage=0;
 double NTC_resistance=0;
 double rt=49900; //resistance of divider resistor for NTC measurement
-
-
-//////////////Thermocouple  Variables/////////////////////
-double thermo_volt=0;//differential voltage of thermocouple
-double thermo_temp=0; //thermocouple temeprature
-double cold_compensation=0; //compensates for board temperature for themrocouple measurement
-double calibrated_voltage=0;
-
-////////On Board Temperature Measurement Variables///////
-double board_sensor_voltage=0;//voltage of on board NTC on CH31
-double resistance_board=0;//resistance of on board NTC on CH31
-double temp_board=0;//temperature of the board
-
-double adc_temp_data=0;
-
-  
-////////////State Machine Variables/////////////////////
-char state=1;    //Used to swtich between channels and ADCS
-
-
+ 
   while(1)
   {
 
 
     // temperatures for 8 channels
     double NTC_temp[8];
-
-    
-
 
     int i;
     for(i = 0; i < 8; i++){
@@ -154,13 +133,13 @@ char state=1;    //Used to swtich between channels and ADCS
 
       init2=0x80; // Use same gain all the time...
     
-      delay(175);
+      delay(250);
       
       buff[0] = init1;
       buff[1] = init2;
       write(fd, buff, 2); //send init1 and init 2 to adc LTC2495
       
-      delay(175);   //need to wait some time before first conversion
+      delay(250);   //need to wait some time before first conversion
       
       read(fd, buff, 3); //read 3 bytes from LTC2495
       x=buff[0];
@@ -185,21 +164,35 @@ char state=1;    //Used to swtich between channels and ADCS
       NTC_resistance=(rt*NTC_voltage)/(vref-NTC_voltage);//Resistance calculated from voltage divider
       NTC_temp[i]=-21.67*log(NTC_resistance)+224.62; //Equation derived from PS103J2 NTC reference table
       
-
-      //	else if (state==3) //On board RTD device on back of board (labeled NTC), used for cold compensation//
-      //	{
-      //  gain=1;
-      //  board_sensor_voltage=data*(vref/(2*gain))/65536;
-      //  resistance_board=(rt*board_sensor_voltage)/(vref-board_sensor_voltage); //resistance of on board NTC
-      //  temp_board=-21.67*log(resistance_board)+224.62; //Equation from NTC look up table
-      //	cold_compensation= 0.0527*temp_board-0.0356;//Eqaution from J type reference table
-      
-    
       printf("NTC temp (ch=%i) = %.4fC \n",i,NTC_temp[i]);
 
-      delay(500);
+      delay(125);
     }
+
+    // Open output file, appending current temperatures
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char filename[100];
+    sprintf(filename,"/home/franciumpi/temperature_data/temp_%d_%d_%d.txt",
+	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+    FILE *f = fopen(filename, "a");
+    if (f == NULL)
+      {
+	printf("Error opening file!\n");
+	exit(1);
+      }
+
+
+    fprintf(f, "%d-%d-%d %d:%d:%d %lu %.4f %.4f %.4f %.4f %.4f %.4f %.4f %.4f\n",
+	    tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, (unsigned long)t,
+	    NTC_temp[0], NTC_temp[1], NTC_temp[2], NTC_temp[3], 
+	    NTC_temp[4], NTC_temp[5], NTC_temp[6], NTC_temp[7]);
+
+    fclose(f);
+
     printf("\n\n");
+
 
 
   }
